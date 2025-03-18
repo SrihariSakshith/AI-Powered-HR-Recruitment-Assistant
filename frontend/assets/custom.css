@@ -1,0 +1,120 @@
+/* Modern color palette */
+:root {
+    --primary: #6C63FF;
+    --secondary: #4CAF50;
+    --background: #F9FAFB;
+    --text: #333;
+    --card: #FFFFFF;
+    --accent: #FF5252;
+}
+
+/* Main background */
+.stApp {
+    background-color: var(--background);
+}
+
+/* Headers */
+h1, h2, h3 {
+    color: var(--primary);
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Main title */
+.main-title {
+    font-size: 2.5rem !important;
+    padding: 1rem 0 !important;
+    background: linear-gradient(90deg, #6C63FF 0%, #4CAF50 100%);
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Cards */
+.css-1r6slb0.e1tzin5v2 {
+    background-color: var(--card);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+}
+
+/* Buttons */
+.stButton > button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    background-color: #5652cc;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+/* Inputs */
+.stTextInput > div > div > input {
+    border-radius: 5px;
+}
+
+/* Upload button */
+.css-1offfwp {
+    border-radius: 5px !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 50px;
+    white-space: pre-wrap;
+    background-color: transparent;
+    border-radius: 5px 5px 0px 0px;
+    color: var(--text);
+    font-weight: 400;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: var(--card);
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid var(--primary);
+}
+
+/* Card elements */
+.card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin: 1rem 0;
+}
+
+/* Badge styles */
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-right: 0.3rem;
+    margin-bottom: 0.3rem;
+}
+.badge-primary {
+    background-color: #6C63FF;
+    color: white;
+}
+.badge-secondary {
+    background-color: #4CAF50;
+    color: white;
+}
+.badge-info {
+    background-color: #03A9F4;
+    color: white;
+}
