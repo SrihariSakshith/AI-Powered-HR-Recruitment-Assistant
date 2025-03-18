@@ -228,23 +228,33 @@ def api_call(method, endpoint, **kwargs):
 
 # Dashboard Section
 if nav_selection == "Dashboard":
+    # Fetch counts of resumes and jobs
+    resume_count = 0
+    job_count = 0
+    
+    if backend_available:
+        # Try to get job count
+        job_result = api_call("get", "/jobs")
+        if job_result["success"] and job_result["data"] and "jobs" in job_result["data"]:
+            job_count = len(job_result["data"]["jobs"])
+    
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("""
+        st.markdown(f"""
         <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center;'>
             <h3 style='color: #6C63FF;'>Resumes</h3>
-            <h2 style='font-size: 2.5rem;'>{}</h2>
+            <h2 style='font-size: 2.5rem;'>{len(st.session_state.get("processed_resumes", []))}</h2>
         </div>
-        """.format(len(resumes) if 'resumes' in locals() else 0), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("""
+        st.markdown(f"""
         <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center;'>
             <h3 style='color: #4CAF50;'>Jobs</h3>
-            <h2 style='font-size: 2.5rem;'>{}</h2>
+            <h2 style='font-size: 2.5rem;'>{job_count}</h2>
         </div>
-        """.format(len(jobs) if 'jobs' in locals() else 0), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
@@ -278,6 +288,36 @@ if nav_selection == "Dashboard":
             </div>
         </div>
         """, unsafe_allow_html=True)
+    
+    # Add Jobs Preview Section after Recent Activities
+    st.markdown("---")
+    st.markdown("### Available Job Openings")
+    
+    # Fetch available jobs
+    job_result = api_call("get", "/jobs")
+    
+    if job_result["success"] and job_result["data"] and "jobs" in job_result["data"]:
+        jobs_preview = job_result["data"]["jobs"][:3]  # Show only first 3 jobs
+        
+        for job in jobs_preview:
+            st.markdown(f"""
+            <div style='background-color: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px;'>
+                <div style='display: flex; justify-content: space-between; align-items: center;'>
+                    <h3 style='margin: 0; color: #333; font-size: 1.2rem;'>{job['job_title']}</h3>
+                    <span style='background-color: #6C63FF; color: white; padding: 2px 8px; border-radius: 15px; font-size: 0.75rem;'>{job['experience_level']}</span>
+                </div>
+                <p style='margin: 8px 0; font-size: 0.9rem; color: #666;'>{job['description'][:100]}...</p>
+                <div>
+                    {' '.join([f"<span class='badge badge-info' style='font-size: 0.75rem;'>{skill}</span>" for skill in job['required_skills'][:4]])}
+                    {f"<span class='badge' style='background-color: #eee; color: #666; font-size: 0.75rem;'>+{len(job['required_skills']) - 4} more</span>" if len(job['required_skills']) > 4 else ""}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        if job_result["data"] and len(job_result["data"]["jobs"]) > 3:
+            st.markdown(f"<p style='text-align: center; margin-top: 10px;'><a href='#' style='color: #6C63FF; text-decoration: none;'>View all {len(job_result['data']['jobs'])} jobs</a></p>", unsafe_allow_html=True)
+    else:
+        st.info("No job postings available yet.")
 
 # Resume Upload Section
 elif nav_selection == "Resume Upload":
@@ -432,22 +472,73 @@ elif nav_selection == "Job Management":
                 st.warning("Please fill all required fields.")
     
     with job_tabs[1]:
-        if 'job_postings' in st.session_state and st.session_state.job_postings:
-            for job in st.session_state.job_postings:
+        # Fetch all jobs from the backend
+        job_result = api_call("get", "/jobs")
+        
+        if job_result["success"] and job_result["data"] and "jobs" in job_result["data"]:
+            jobs_list = job_result["data"]["jobs"]
+            
+            # Display the number of available jobs
+            st.markdown(f"### {len(jobs_list)} Job Postings Available")
+            
+            # Display jobs from the backend
+            for job in jobs_list:
                 with st.container():
                     st.markdown(f"""
                     <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px;'>
                         <div style='display: flex; justify-content: space-between;'>
-                            <h3 style='margin-top: 0; color: #333;'>{job['title']}</h3>
-                            <span style='background-color: #6C63FF; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{job['level']}</span>
+                            <h3 style='margin-top: 0; color: #333;'>{job['job_title']}</h3>
+                            <span style='background-color: #6C63FF; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{job['experience_level']}</span>
                         </div>
-                        <p style='color: #777; font-size: 0.9rem;'>Posted: {job['date']}</p>
-                        <p style='margin-bottom: 10px;'>Skills: {job['skills']}</p>
-                        <p style='color: #666; font-size: 0.9rem;'>ID: {job['id']}</p>
+                        <p style='color: #777; font-size: 0.9rem;'>ID: {job.get('job_id', 'N/A')}</p>
+                        <p style='margin: 10px 0; color: #444;'>{job['description'][:150]}...</p>
+                        <div style='margin-top: 10px;'>
+                            <p style='margin-bottom: 5px; font-weight: 500;'>Required Skills:</p>
+                            {''.join([f"<span class='badge badge-primary'>{skill}</span>" for skill in job['required_skills']])}
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
+            
+            # If there are no jobs from backend
+            if not jobs_list:
+                # Check for jobs added in current session
+                if 'job_postings' in st.session_state and st.session_state.job_postings:
+                    # Display jobs from session state
+                    for job in st.session_state.job_postings:
+                        with st.container():
+                            st.markdown(f"""
+                            <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px;'>
+                                <div style='display: flex; justify-content: space-between;'>
+                                    <h3 style='margin-top: 0; color: #333;'>{job['title']}</h3>
+                                    <span style='background-color: #6C63FF; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{job['level']}</span>
+                                </div>
+                                <p style='color: #777; font-size: 0.9rem;'>Posted: {job['date']}</p>
+                                <p style='margin-bottom: 10px;'>Skills: {job['skills']}</p>
+                                <p style='color: #666; font-size: 0.9rem;'>ID: {job['id']}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                else:
+                    st.info("No job postings available yet.")
         else:
-            st.info("No job postings yet. Add a job posting to see it here.")
+            # If we couldn't fetch jobs from the backend
+            if 'job_postings' in st.session_state and st.session_state.job_postings:
+                # Display jobs from session state
+                for job in st.session_state.job_postings:
+                    with st.container():
+                        st.markdown(f"""
+                        <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px;'>
+                            <div style='display: flex; justify-content: space-between;'>
+                                <h3 style='margin-top: 0; color: #333;'>{job['title']}</h3>
+                                <span style='background-color: #6C63FF; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem;'>{job['level']}</span>
+                            </div>
+                            <p style='color: #777; font-size: 0.9rem;'>Posted: {job['date']}</p>
+                            <p style='margin-bottom: 10px;'>Skills: {job['skills']}</p>
+                            <p style='color: #666; font-size: 0.9rem;'>ID: {job['id']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.error("Failed to load job postings from the server.")
+                st.info("Please make sure the backend server is running.")
 
 # Candidate Search Section
 elif nav_selection == "Candidate Search":
@@ -526,35 +617,116 @@ elif nav_selection == "Career Insights":
     </div>
     """, unsafe_allow_html=True)
     
-    candidate_id = st.text_input("Candidate ID", placeholder="Enter candidate ID")
+    # Check for candidate_id in URL parameters
+    params = st.experimental_get_query_params()
+    url_candidate_id = params.get("candidate_id", [""])[0]
     
-    if st.button("Get Career Insights", key="insights_button"):
-        if candidate_id:
-            with st.spinner("Generating AI insights..."):
-                # Add a little delay for UX
-                time.sleep(1)
+    if url_candidate_id:
+        candidate_id = url_candidate_id
+    else:
+        candidate_id = st.text_input("Candidate ID", placeholder="Enter candidate ID")
+    
+    if candidate_id:
+        # Auto-fetch insights if ID is provided in URL
+        auto_fetch = url_candidate_id != ""
+        
+        if auto_fetch or st.button("Get Career Insights", key="insights_button"):
+            with st.spinner("Generating AI-powered career insights..."):
+                # Add progress indicator for better UX
+                progress_bar = st.progress(0)
+                for i in range(100):
+                    time.sleep(0.01)
+                    progress_bar.progress(i + 1)
                 
                 result = api_call("get", f"/career-insights/{candidate_id}")
                 
                 if result["success"]:
                     insights = result["data"].get("insights", "")
                     
-                    # Display insights in a nice formatted way
-                    st.markdown("""
-                    <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-                        <h3 style='color: #6C63FF; margin-top: 0;'>AI Career Insights</h3>
-                        <hr style='margin: 10px 0 20px 0;'>
-                    """, unsafe_allow_html=True)
-                    
-                    st.markdown(insights)
-                    
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    # Check if we received an error message instead of real insights
+                    if insights.startswith("Unable to generate") or "error" in insights.lower():
+                        st.error(insights)
+                        
+                        # Display more specific troubleshooting tips based on the error
+                        if "model" in insights.lower() and "not found" in insights.lower():
+                            st.markdown("""
+                            <div style='background-color: #FFF4E5; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                <h4 style='color: #FF9800; margin-top: 0;'>Model Configuration Issue</h4>
+                                <ul>
+                                    <li>The system is configured to use the <code>gemini-1.5-flash</code> model</li>
+                                    <li>Make sure your Google AI Studio API key has access to this model</li>
+                                    <li>Check if the model name is spelled correctly in the backend code</li>
+                                    <li>You might need to update your Google Generative AI package: <code>pip install -U google-generativeai</code></li>
+                                </ul>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.markdown("""
+                            <div style='background-color: #FFF4E5; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                <h4 style='color: #FF9800; margin-top: 0;'>Troubleshooting Tips</h4>
+                                <ul>
+                                    <li>Check if the backend server has a valid API key in the .env file</li>
+                                    <li>Ensure the candidate resume was properly processed with complete information</li>
+                                    <li>Try uploading the resume again with more detailed information</li>
+                                    <li>If the error persists, the AI service might be temporarily unavailable</li>
+                                </ul>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        # Display insights in a nice formatted way
+                        st.markdown("""
+                        <div style='background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+                            <h3 style='color: #6C63FF; margin-top: 0;'>AI Career Insights</h3>
+                            <hr style='margin: 10px 0 20px 0;'>
+                        """, unsafe_allow_html=True)
+                        
+                        # Show insights with better markdown rendering
+                        st.markdown(insights)
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        # Add options to download insights or share
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("Regenerate Insights", key="regenerate_insights"):
+                                st.experimental_rerun()
+                        with col2:
+                            if st.button("Download as PDF", key="download_insights"):
+                                st.info("PDF download functionality will be available in the next update.")
                 else:
                     error_msg = "Failed to retrieve insights"
                     if result.get("status_code") == 404:
                         error_msg = "Candidate not found. Check if the ID is correct."
-                    elif "Cannot connect" in result['error']:
+                    elif "Cannot connect" in result.get('error', ""):
                         error_msg = "Cannot connect to backend server. Please make sure it's running."
+                    
                     st.error(error_msg)
-        else:
-            st.warning("Please enter a candidate ID.")
+                    
+                    # Show a helpful card with troubleshooting tips
+                    st.markdown("""
+                    <div style='background-color: #FFF4E5; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                        <h4 style='color: #FF9800; margin-top: 0;'>Troubleshooting Tips</h4>
+                        <ul>
+                            <li>Verify that you've entered the correct candidate ID</li>
+                            <li>Ensure the backend server is running properly</li>
+                            <li>Check if the candidate resume was properly processed</li>
+                            <li>Try uploading the resume again if the problem persists</li>
+                        </ul>
+                    </div>
+                    """, unsafe_allow_html=True)
+    else:
+        # If no candidate ID was entered
+        st.warning("Please enter a candidate ID.")
+        
+        # Show a helper section with tips for finding candidate IDs
+        st.markdown("""
+        <div style='background-color: #E3F2FD; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+            <h4 style='color: #2196F3; margin-top: 0;'>How to Find Candidate IDs</h4>
+            <ol>
+                <li>Go to the "Resume Upload" section and upload a candidate resume</li>
+                <li>After processing, you'll receive a candidate ID</li>
+                <li>Alternatively, search for candidates in the "Candidate Search" section</li>
+                <li>Click on "View Career Insights" from the search results</li>
+            </ol>
+        </div>
+        """, unsafe_allow_html=True)
